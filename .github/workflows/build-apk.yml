@@ -20,12 +20,14 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
 
-      - name: Build release APK
-        run: gradle assembleRelease
+      - name: Build installable APK
+        run: gradle assembleDebug
 
       - name: Upload Scorte Tecniche APK
         uses: actions/upload-artifact@v4
         with:
-          name: ScorteTecniche-v1.0-unsigned
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          name: ScorteTecniche-v1.0-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
