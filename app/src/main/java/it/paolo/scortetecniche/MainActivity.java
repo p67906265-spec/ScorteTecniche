@@ -15,6 +15,7 @@ import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
+import android.webkit.WebStorage;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.EditText;
@@ -84,7 +85,17 @@ public class MainActivity extends Activity {
             ((DownloadManager)getSystemService(DOWNLOAD_SERVICE)).enqueue(request);
             Toast.makeText(this,"Download avviato.",Toast.LENGTH_SHORT).show();
         });
-        if(savedInstanceState==null) webView.loadUrl(siteUrl); else webView.restoreState(savedInstanceState);
+        if(savedInstanceState==null) {
+            // Un nuovo avvio dell'app deve sempre richiedere il login.
+            WebStorage.getInstance().deleteAllData();
+            cm.removeAllCookies(removed -> {
+                cm.flush();
+                webView.clearHistory();
+                webView.loadUrl(siteUrl);
+            });
+        } else {
+            webView.restoreState(savedInstanceState);
+        }
     }
 
     private void showSiteSettings() {
