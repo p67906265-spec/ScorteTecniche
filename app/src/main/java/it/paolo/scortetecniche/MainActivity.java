@@ -21,6 +21,10 @@ import android.webkit.WebViewClient;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import java.net.URLDecoder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 public class MainActivity extends Activity {
     private WebView webView;
     private static final String DEFAULT_HOME = "https://scortetecniche.rf.gd/";
@@ -81,7 +85,7 @@ public class MainActivity extends Activity {
             request.addRequestHeader("User-Agent",userAgent);
             request.setMimeType(mime);
             request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,android.webkit.URLUtil.guessFileName(url,disposition,mime));
+            request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,downloadFileName(url,disposition,mime));
             ((DownloadManager)getSystemService(DOWNLOAD_SERVICE)).enqueue(request);
             Toast.makeText(this,"Download avviato.",Toast.LENGTH_SHORT).show();
         });
@@ -125,6 +129,29 @@ public class MainActivity extends Activity {
 
     private String normalizeSiteUrl(String value){value=value.trim();if(!value.contains("://"))value="https://"+value;return value.endsWith("/")?value:value+"/";}
     private void saveAndOpenSite(String value){siteUrl=value;getSharedPreferences(PREFS,MODE_PRIVATE).edit().putString(PREF_SITE_URL,value).apply();webView.clearHistory();webView.loadUrl(value);Toast.makeText(this,"Indirizzo del sito salvato.",Toast.LENGTH_SHORT).show();}
+
+    private String downloadFileName(String url,String disposition,String mime){
+        String name=fileNameFromDisposition(disposition);
+        if(name.isEmpty()) name=android.webkit.URLUtil.guessFileName(url,disposition,mime);
+        name=name.replaceAll("[\\\\/:*?\"<>|]","-").trim();
+        if(name.isEmpty()) name="modulo.pdf";
+        if("application/pdf".equalsIgnoreCase(mime)&&!name.toLowerCase().endsWith(".pdf")) name+=".pdf";
+        return name;
+    }
+
+    private String fileNameFromDisposition(String disposition){
+        if(disposition==null||disposition.trim().isEmpty()) return "";
+        Matcher encoded=Pattern.compile("filename\\*\\s*=\\s*([^;]+)",Pattern.CASE_INSENSITIVE).matcher(disposition);
+        if(encoded.find()){
+            String value=encoded.group(1).trim().replaceAll("^\"|\"$","");
+            int marker=value.indexOf("''");
+            if(marker>=0) value=value.substring(marker+2);
+            try{return URLDecoder.decode(value,"UTF-8");}catch(Exception ignored){}
+        }
+        Matcher plain=Pattern.compile("filename\\s*=\\s*(\"[^\"]*\"|[^;]+)",Pattern.CASE_INSENSITIVE).matcher(disposition);
+        if(plain.find()) return plain.group(1).trim().replaceAll("^\"|\"$","");
+        return "";
+    }
 
     @Override protected void onActivityResult(int requestCode,int resultCode,Intent data){
         super.onActivityResult(requestCode,resultCode,data);
